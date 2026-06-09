@@ -1,0 +1,22 @@
+{
+  "name": "@wi-dot/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "widot": "./dist/bin/widot.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "node --experimental-strip-types src/bin/widot.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "inquirer": "^12.6.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  }
+}

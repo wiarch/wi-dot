@@ -1,0 +1,1 @@
+export { PAYLOAD_VERSION, PBKDF2_ITERATIONS, SALT_LENGTH, IV_LENGTH, TAG_LENGTH, KEY_LENGTH, bufferToBase64, base64ToBuffer, sha256Hex, sha256Plaintext, deriveKey, buildPayloadBinary, assertPayloadBinaryLengths, encryptDotfile, decryptDotfile, verifyPayloadIntegrity, prepareDotfileUpload, restoreDotfileToDisk, } from './crypto/e2e-crypto.js';
