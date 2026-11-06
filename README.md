@@ -1,58 +1,152 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# WI Dot
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Gestión y sincronización cifrada de dotfiles y entornos Linux.**
 
-## About Laravel
+WI Dot permite respaldar y restaurar archivos de configuración de Linux entre entornos. El cliente CLI cifra los archivos localmente antes de enviarlos al servidor, mientras que el backend almacena los blobs cifrados y administra entornos, versiones e historial.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+El proyecto combina una API Laravel, un cliente de línea de comandos en TypeScript y un dashboard web en React.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+> **Estado del proyecto:** prototipo funcional en evolución. La API y el CLI contienen flujos reales de configuración, subida y restauración. El dashboard React utiliza actualmente datos simulados y todavía no está conectado al API para mostrar información real.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Funcionalidades implementadas
 
-## Learning Laravel
+- Gestión de entornos asociados a una cuenta.
+- API protegida mediante Laravel Sanctum.
+- CLI con comandos `init`, `push` y `pull`.
+- Cifrado local AES-256-GCM con claves derivadas mediante PBKDF2-SHA256 (600.000 iteraciones).
+- El servidor almacena payloads cifrados sin recibir la passphrase ni el contenido en claro.
+- Verificación de integridad del payload cifrado mediante SHA-256.
+- Detección de cambios mediante hash del contenido calculado en el cliente.
+- Historial de versiones cuando un dotfile existente se actualiza.
+- Escritura local atómica en el flujo de restauración.
+- Dashboard React con explorador de archivos y vista de diferencias usando datos de demostración.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Componentes
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Componente | Tecnología | Responsabilidad |
+|---|---|---|
+| Backend/API | PHP 8.3+, Laravel 13, Sanctum | Cuentas, entornos, API y almacenamiento cifrado |
+| CLI | Node.js, TypeScript | Cifrar, subir, descargar y restaurar dotfiles |
+| Criptografía | Node.js Crypto, AES-256-GCM, PBKDF2-SHA256 | Cifrado y verificación local |
+| Dashboard | React 19, TypeScript, Vite, Tailwind CSS | Interfaz de exploración y comparación; actualmente usa mocks |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Arquitectura de seguridad
 
-## Agentic Development
+El cifrado se realiza en el cliente antes de transmitir los archivos:
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+1. El CLI lee el archivo local.
+2. Genera salt e IV aleatorios.
+3. Deriva una clave con PBKDF2-SHA256.
+4. Cifra el contenido mediante AES-256-GCM.
+5. Envía el payload cifrado y hashes al backend.
+6. El servidor valida la estructura y la integridad del blob, y lo almacena sin descifrarlo.
+
+El hash del contenido en claro se conserva como metadata para detectar cambios; por tanto, el servidor puede observar rutas, nombres, tamaños aproximados, hashes y actividad de sincronización. **Zero-Knowledge no significa que toda la metadata esté oculta.**
+
+Consulta [docs/SECURITY.md](docs/SECURITY.md) antes de utilizar datos importantes. La restauración desde el servidor necesita todavía controles adicionales de confinamiento de rutas y protección frente a enlaces simbólicos.
+
+## Requisitos
+
+### Backend
+- PHP 8.3 o superior.
+- Composer.
+- Una base de datos soportada por Laravel.
+- Node.js y npm para compilar el dashboard.
+
+### CLI
+- Node.js 22 o superior recomendado.
+- npm.
+
+## Instalación del backend
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/wiarch/wi-dot.git
+cd wi-dot
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Configura la base de datos en `.env` y ejecuta:
 
-## Contributing
+```bash
+php artisan migrate
+npm install
+npm run build
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+El API queda disponible bajo `/api`. Los endpoints requieren autenticación `auth:sanctum` mediante Bearer token.
 
-## Code of Conduct
+## Instalación del CLI
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+cd cli
+npm install
+npm run build
+npm link
+```
 
-## Security Vulnerabilities
+Configura el cliente:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+widot init
+```
 
-## License
+El asistente solicita URL del servidor, UUID del entorno, token API y passphrase criptográfica. La configuración se guarda en `~/.config/widot/config.json` con permisos restrictivos (600). La passphrase se conserva localmente en ese archivo; todavía no se integra con el llavero seguro del sistema operativo.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Subir archivos
+
+```bash
+widot push ~/.config/hypr/
+```
+
+### Restaurar archivos
+
+```bash
+widot pull
+```
+
+Selecciona rutas concretas y revisa su contenido antes de subirlo. No respaldes carpetas completas del usuario sin revisar previamente si contienen claves privadas, tokens, credenciales o archivos sensibles.
+
+**Precaución:** hasta completar el endurecimiento de rutas del cliente, utiliza `pull` únicamente contra un servidor de confianza y conserva una copia de seguridad local de los archivos que puedan ser reemplazados.
+
+## Desarrollo
+
+Backend:
+
+```bash
+composer run dev
+php artisan test
+vendor/bin/pint --test
+```
+
+Dashboard:
+
+```bash
+npm run dev
+npm run build
+```
+
+CLI:
+
+```bash
+cd cli
+npm run dev
+npm run typecheck
+npm run build
+```
+
+## Documentación
+
+- [PRODUCT.md](docs/PRODUCT.md): visión, usuarios y alcance.
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md): componentes, API y flujo de sincronización.
+- [SECURITY.md](docs/SECURITY.md): modelo de amenazas, cifrado y riesgos pendientes.
+- [ROADMAP.md](docs/ROADMAP.md): prioridades y fases.
+- [CONTRIBUTING.md](CONTRIBUTING.md): guía de contribución.
+- [CLAUDE.md](CLAUDE.md): instrucciones para asistentes de programación.
+- [PROMPT.md](PROMPT.md): prompt maestro de desarrollo.
+
+## Licencia
+
+La licencia debe quedar definida explícitamente para el producto. Revisa el archivo de licencia del repositorio antes de redistribuir o incorporar WI Dot en otros proyectos.
