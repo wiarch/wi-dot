@@ -1,152 +1,123 @@
 # WI Dot
 
-**Gestión y sincronización cifrada de dotfiles y entornos Linux.**
+**Linux environment backup, dotfiles management and encrypted restoration.**
 
-WI Dot permite respaldar y restaurar archivos de configuración de Linux entre entornos. El cliente CLI cifra los archivos localmente antes de enviarlos al servidor, mientras que el backend almacena los blobs cifrados y administra entornos, versiones e historial.
+WI Dot helps rebuild a Linux workstation after a reinstall, migrate a setup to another computer and keep important configuration backed up without configuring everything from scratch.
 
-El proyecto combina una API Laravel, un cliente de línea de comandos en TypeScript y un dashboard web en React.
+The long-term goal is to make a fresh Linux installation feel familiar again: restore shell, terminal, desktop preferences, editor settings, development tools and selected application configurations through a controlled plan.
 
-> **Estado del proyecto:** prototipo funcional en evolución. La API y el CLI contienen flujos reales de configuración, subida y restauración. El dashboard React utiliza actualmente datos simulados y todavía no está conectado al API para mostrar información real.
+> WI Dot is evolving. The current implementation provides an encrypted dotfiles CLI and Laravel API. Full system inventory, package restoration, desktop profiles and live dashboard integration are planned, not completed features.
 
-## Funcionalidades implementadas
+## Product vision
 
-- Gestión de entornos asociados a una cuenta.
-- API protegida mediante Laravel Sanctum.
-- CLI con comandos `init`, `push` y `pull`.
-- Cifrado local AES-256-GCM con claves derivadas mediante PBKDF2-SHA256 (600.000 iteraciones).
-- El servidor almacena payloads cifrados sin recibir la passphrase ni el contenido en claro.
-- Verificación de integridad del payload cifrado mediante SHA-256.
-- Detección de cambios mediante hash del contenido calculado en el cliente.
-- Historial de versiones cuando un dotfile existente se actualiza.
-- Escritura local atómica en el flujo de restauración.
-- Dashboard React con explorador de archivos y vista de diferencias usando datos de demostración.
+WI Dot is more than a dotfiles uploader. It is intended to become a personal Linux environment recovery system.
 
-## Componentes
+- **Capture:** select configuration files, application settings and environment metadata.
+- **Protect:** encrypt file contents locally before upload.
+- **Organize:** separate backups into named environments such as Desktop, Laptop and Workstation.
+- **Rebuild:** after reinstalling Linux, inspect what is missing and prepare a restoration plan.
+- **Restore safely:** preview changes, request approval and recover files without silently overwriting unrelated data.
 
-| Componente | Tecnología | Responsabilidad |
-|---|---|---|
-| Backend/API | PHP 8.3+, Laravel 13, Sanctum | Cuentas, entornos, API y almacenamiento cifrado |
-| CLI | Node.js, TypeScript | Cifrar, subir, descargar y restaurar dotfiles |
-| Criptografía | Node.js Crypto, AES-256-GCM, PBKDF2-SHA256 | Cifrado y verificación local |
-| Dashboard | React 19, TypeScript, Vite, Tailwind CSS | Interfaz de exploración y comparación; actualmente usa mocks |
+## What WI Dot aims to preserve
 
-## Arquitectura de seguridad
+| Area | Examples |
+|---|---|
+| Desktop environment | KDE Plasma, GNOME, themes, icons, fonts, wallpapers and extensions |
+| Terminal | Bash, Zsh, Fish, aliases, functions, Starship and terminal profiles |
+| Developer workstation | Git, SSH configuration, editors, IDEs, Docker, PHP, Laravel and Node.js |
+| Applications | Selected application preferences, Flatpak inventory and supported package lists |
+| Personal configuration | Dotfiles, hidden files and selected paths under `~/.config` |
+| Automation | Setup scripts, post-install tasks and reproducible environment manifests |
 
-El cifrado se realiza en el cliente antes de transmitir los archivos:
+System packages, drivers, services, repositories and privileged settings require platform-aware handling. WI Dot should inventory and propose these operations first, then ask for approval before making system changes.
 
-1. El CLI lee el archivo local.
-2. Genera salt e IV aleatorios.
-3. Deriva una clave con PBKDF2-SHA256.
-4. Cifra el contenido mediante AES-256-GCM.
-5. Envía el payload cifrado y hashes al backend.
-6. El servidor valida la estructura y la integridad del blob, y lo almacena sin descifrarlo.
+## Current implementation
 
-El hash del contenido en claro se conserva como metadata para detectar cambios; por tanto, el servidor puede observar rutas, nombres, tamaños aproximados, hashes y actividad de sincronización. **Zero-Knowledge no significa que toda la metadata esté oculta.**
+- Laravel 13 API with Sanctum authentication.
+- Named environments and encrypted dotfile records.
+- TypeScript/Node.js CLI with `widot init`, `widot push` and `widot pull`.
+- Client-side AES-256-GCM encryption with PBKDF2-SHA256.
+- SHA-256 hashes for payload integrity and local change detection.
+- Encrypted file storage and version-history records.
+- React 19 + TypeScript dashboard foundation; current dashboard data is mocked.
 
-Consulta [docs/SECURITY.md](docs/SECURITY.md) antes de utilizar datos importantes. La restauración desde el servidor necesita todavía controles adicionales de confinamiento de rutas y protección frente a enlaces simbólicos.
+## Planned recovery workflow
 
-## Requisitos
+1. Create a backup profile for the current Linux machine.
+2. Select configuration paths and supported environment inventory sources.
+3. Review detected applications, package managers and desktop components.
+4. Encrypt and back up selected configuration data.
+5. On a fresh installation, install WI Dot and authenticate.
+6. Compare the new machine with the saved profile.
+7. Review a restore plan showing files, packages and actions.
+8. Approve selected operations and restore in safe stages.
+9. Verify the result and retain a recovery log.
+
+## Security model
+
+- File contents are encrypted locally before upload.
+- The API stores encrypted payloads and metadata; it does not decrypt file contents.
+- Restores must validate paths, reject traversal and avoid unsafe symlink behavior.
+- System-level changes must be explicit and require user approval.
+- Secrets such as private keys, tokens and credentials need opt-in handling and clear warnings.
+
+The server can still observe metadata such as filenames, paths, timestamps, sizes and hashes. See [Security and Privacy](docs/SECURITY.md).
+
+## Technology
+
+- **Backend:** PHP 8.3+, Laravel 13, Laravel Sanctum.
+- **CLI:** Node.js, TypeScript, Commander and Node Crypto.
+- **Dashboard:** React 19, TypeScript, Vite and Tailwind CSS.
+- **Encryption:** AES-256-GCM, PBKDF2-SHA256 and SHA-256.
+
+## Repository documentation
+
+- [Product definition](docs/PRODUCT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security and privacy](docs/SECURITY.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Development instructions for Claude](CLAUDE.md)
+- [Master implementation prompt](PROMPT.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Development
 
 ### Backend
-- PHP 8.3 o superior.
-- Composer.
-- Una base de datos soportada por Laravel.
-- Node.js y npm para compilar el dashboard.
-
-### CLI
-- Node.js 22 o superior recomendado.
-- npm.
-
-## Instalación del backend
 
 ```bash
-git clone https://github.com/wiarch/wi-dot.git
-cd wi-dot
 composer install
 cp .env.example .env
 php artisan key:generate
-```
-
-Configura la base de datos en `.env` y ejecuta:
-
-```bash
 php artisan migrate
-npm install
-npm run build
 php artisan serve
 ```
 
-El API queda disponible bajo `/api`. Los endpoints requieren autenticación `auth:sanctum` mediante Bearer token.
+### Dashboard
 
-## Instalación del CLI
+```bash
+npm install
+npm run dev
+```
+
+### CLI
 
 ```bash
 cd cli
 npm install
 npm run build
-npm link
+node dist/bin/widot.js --help
 ```
 
-Configura el cliente:
+Available CLI commands currently include:
 
 ```bash
 widot init
-```
-
-El asistente solicita URL del servidor, UUID del entorno, token API y passphrase criptográfica. La configuración se guarda en `~/.config/widot/config.json` con permisos restrictivos (600). La passphrase se conserva localmente en ese archivo; todavía no se integra con el llavero seguro del sistema operativo.
-
-### Subir archivos
-
-```bash
-widot push ~/.config/hypr/
-```
-
-### Restaurar archivos
-
-```bash
+widot push ~/.config
 widot pull
 ```
 
-Selecciona rutas concretas y revisa su contenido antes de subirlo. No respaldes carpetas completas del usuario sin revisar previamente si contienen claves privadas, tokens, credenciales o archivos sensibles.
+Use a narrow, reviewed directory when backing up files. Do not upload your entire home directory without exclusions and a clear understanding of its contents.
 
-**Precaución:** hasta completar el endurecimiento de rutas del cliente, utiliza `pull` únicamente contra un servidor de confianza y conserva una copia de seguridad local de los archivos que puedan ser reemplazados.
+## Project status
 
-## Desarrollo
-
-Backend:
-
-```bash
-composer run dev
-php artisan test
-vendor/bin/pint --test
-```
-
-Dashboard:
-
-```bash
-npm run dev
-npm run build
-```
-
-CLI:
-
-```bash
-cd cli
-npm run dev
-npm run typecheck
-npm run build
-```
-
-## Documentación
-
-- [PRODUCT.md](docs/PRODUCT.md): visión, usuarios y alcance.
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md): componentes, API y flujo de sincronización.
-- [SECURITY.md](docs/SECURITY.md): modelo de amenazas, cifrado y riesgos pendientes.
-- [ROADMAP.md](docs/ROADMAP.md): prioridades y fases.
-- [CONTRIBUTING.md](CONTRIBUTING.md): guía de contribución.
-- [CLAUDE.md](CLAUDE.md): instrucciones para asistentes de programación.
-- [PROMPT.md](PROMPT.md): prompt maestro de desarrollo.
-
-## Licencia
-
-La licencia debe quedar definida explícitamente para el producto. Revisa el archivo de licencia del repositorio antes de redistribuir o incorporar WI Dot en otros proyectos.
+WI Dot is under active development. The roadmap prioritizes filesystem safety, restore previews, exclusions, package inventory, reproducible setup plans and real dashboard/API integration. Do not use unattended restore workflows until the security requirements are implemented and tested.
