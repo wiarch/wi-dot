@@ -2,83 +2,111 @@
 
 ## Vision
 
-WI Dot is a Linux configuration and dotfiles manager that helps users keep selected configuration files backed up and consistent across named environments, such as a desktop, laptop or workstation.
+WI Dot is a Linux environment backup and recovery platform. It helps users preserve the setup they have carefully built and reconstruct it after reinstalling Linux, migrating to a new computer or recovering from a damaged installation.
+
+The intended experience is: back up a workstation profile once, reinstall Linux, install WI Dot, compare the new machine with the saved profile and restore selected parts through a clear and safe plan.
 
 ## Positioning
 
-**Category:** dotfiles management, encrypted backup and environment synchronization.
+**Category:** Linux environment manager, encrypted dotfiles backup and workstation recovery.
 
-**Primary value:** protect and restore selected Linux configuration files without exposing their plaintext contents to the storage server.
+**Primary value:** restore a familiar Linux environment without manually reconfiguring every application, shell, desktop preference and development tool.
+
+**Initial platform:** Linux. The architecture should allow future macOS and Windows adapters without promising support before they exist.
 
 ## Users
 
-- Linux users who maintain personal dotfiles.
-- Developers and system administrators with multiple machines.
-- Users who customize desktop environments, shells, terminals and developer tools.
-- Users who need version history and a safer recovery workflow for configuration changes.
+- Linux users who reinstall distributions or switch machines.
+- Developers who need a consistent workstation setup.
+- Users who customize KDE Plasma, GNOME, terminals, shells and applications.
+- Users who maintain multiple machines with different configuration profiles.
+- Users who want encrypted backups and recoverable configuration history.
 
 ## Product pillars
 
-### 1. Local-first encryption
-The CLI encrypts file contents before upload. The server stores opaque payloads and does not receive the passphrase.
+### 1. Capture the environment
+Discover and preserve selected configuration files, desktop preferences, shell settings, development tools and supported application inventories.
 
-### 2. Environment awareness
-Users can separate configurations into named environments, for example Desktop, Laptop or Workstation.
+### 2. Protect user data
+Encrypt file contents locally before upload. Keep the server unable to decrypt stored payloads. Explain which metadata remains visible.
 
-### 3. Safe backup and restore
-The product should detect changes, preserve prior versions and make restore operations explicit and recoverable.
+### 3. Organize machine profiles
+Separate Desktop, Laptop, Workstation, Testing and other environments. Profiles should allow shared baseline settings and machine-specific differences.
 
-### 4. Transparent synchronization
-The CLI should clearly report uploaded, unchanged, restored, conflicting and failed files.
+### 4. Rebuild instead of reconfigure
+After a fresh installation, compare the new system with a saved profile. Identify missing packages, applications, configuration and tools. Produce a reviewable plan instead of executing everything immediately.
 
-### 5. Useful visual management
-The dashboard should eventually show real environments, files, history and diffs rather than demo data.
+### 5. Restore safely
+Preview file changes, detect conflicts, back up existing files, request approval and provide rollback. Package installation and system modifications must be explicit and auditable.
 
-## Existing capabilities
+### 6. Manage visually
+The dashboard should eventually expose real environments, inventory, file history, diffs and restore plans through authenticated API data.
 
-- Laravel API with Sanctum authentication.
-- Environment creation and listing.
-- Dotfile upload and download endpoints.
-- Encrypted payload storage and file-history records.
-- CLI initialization, push and pull commands.
-- AES-256-GCM encryption and PBKDF2-SHA256 key derivation.
-- SHA-256 integrity and change hashes.
+## Intended coverage
+
+| Category | Examples | Handling |
+|---|---|---|
+| Desktop environment | KDE Plasma, GNOME, themes, icons, fonts, wallpapers, extensions | User-level settings and supported adapters |
+| Shell and terminal | Bash, Zsh, Fish, aliases, functions, Starship, terminal profiles | Selected dotfiles and directories |
+| Developer workstation | Git, SSH client config, editors, IDEs, Docker, PHP, Laravel, Node.js | Config backup plus tool inventory |
+| Applications | User-level preferences, selected `~/.config` directories | Opt-in selection and exclusions |
+| Packages | pacman, apt, dnf, Flatpak, Snap | Inventory and generated install plan |
+| Automation | Setup scripts, manifests, post-install tasks | Versioned, inspectable scripts; never auto-execute by default |
+
+Drivers, kernel modules, system services, repositories, firewall rules and privileged configuration need separate system adapters. These are not ordinary dotfiles and must never be silently restored.
+
+## Current implementation
+
+- Laravel 13 API with Sanctum authentication.
+- Named environment creation and listing.
+- Encrypted dotfile upload and download.
+- Encrypted payload validation and private storage.
+- File-history records when existing dotfiles are updated.
+- TypeScript CLI commands: `widot init`, `widot push` and `widot pull`.
+- AES-256-GCM encryption and PBKDF2-SHA256 key derivation on the client.
+- SHA-256 hashes for payload integrity and local change detection.
 - React dashboard components for file navigation and diffs, currently powered by mock data.
 
 ## Planned capabilities
 
-- Live API integration for the dashboard.
-- Explicit file exclusions and safe directory selection.
-- Dry-run and conflict resolution.
-- Restore preview and rollback.
-- Symlink-aware filesystem traversal and path confinement.
-- OS credential-store integration.
-- Better retention and history management.
-- Linux desktop integration and optional scheduled backups.
+- Distribution, desktop environment, shell and package-manager detection.
+- Package inventory export and restore adapters.
+- KDE Plasma and GNOME configuration profiles.
+- Application catalog and configuration discovery.
+- Include/exclude rules, sensitive-file warnings and dry-run.
+- Safe restore preview, path confinement, conflict resolution and rollback.
+- OS credential-store integration for passphrases.
+- Live dashboard/API integration.
+- Scheduled backups and post-install recovery assistant.
+- Future macOS and Windows adapters after Linux workflows are stable.
 
 ## Out of scope unless separately approved
 
-- General-purpose cloud drive.
-- Arbitrary file synchronization for large binary data.
-- Remote shell execution or machine administration.
-- Automatic modification of system files.
+- General-purpose cloud drive or arbitrary binary synchronization.
+- Remote shell access or remote machine administration.
+- Automatic execution of downloaded scripts.
+- Silent package installation or privileged system modifications.
 - Unattended destructive synchronization.
+- Claims of complete machine imaging or bare-metal recovery.
 
 ## Product principles
 
-1. The user controls which paths are backed up.
-2. Encryption happens before network transmission.
-3. Restoring a file must never silently write outside an approved directory.
-4. Never follow symlinks during recursive collection without an explicit, safe policy.
-5. Preserve history and provide a recovery path.
-6. Make server-visible metadata clear to users.
-7. Never label mock dashboard data as real account data.
+1. The user decides what is captured and restored.
+2. Inventory is read-only until the user approves an action.
+3. File contents are encrypted before network transmission.
+4. Secrets are excluded by default.
+5. Restore operations are previewed, scoped and recoverable.
+6. System-level actions require explicit approval.
+7. Server-visible metadata is documented honestly.
+8. Planned features are never represented as implemented.
 
 ## Success criteria
 
-- A user can initialize a client and configure a named environment.
-- Selected dotfiles can be encrypted and uploaded.
-- The server cannot decrypt stored payloads.
-- A user can detect unchanged files and restore a previous version safely.
+- A user can create named environment profiles.
+- Selected dotfiles can be encrypted and synchronized.
+- A fresh Linux installation can be compared with a saved environment inventory.
+- WI Dot can generate a clear plan for missing packages and settings.
+- The user can selectively approve and restore files safely.
+- Existing files can be recovered after a failed or unwanted restore.
 - Path traversal and symlink regression tests pass.
-- Dashboard data is sourced from authenticated API responses.
+- Dashboard state comes from authenticated API data.
