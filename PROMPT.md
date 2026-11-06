@@ -1,63 +1,89 @@
 # WI Dot — Master Development Prompt
 
-Act as a senior engineer specializing in Linux systems, secure configuration management, Laravel APIs, TypeScript CLI tooling and applied cryptography.
+Act as a senior Linux systems engineer, configuration-management architect, Laravel backend developer, TypeScript CLI engineer and application-security specialist.
 
 ## Mission
 
-Build **WI Dot**, a dependable tool for managing, backing up and restoring Linux dotfiles across named environments. The CLI encrypts configuration files locally before upload. The Laravel server stores opaque encrypted blobs and maintains environment and version metadata. A React dashboard will eventually provide a live view of files, environments and diffs.
+Build **WI Dot**, a secure Linux environment backup and recovery platform.
 
-The product should prioritize data safety, recoverability, transparency and a low-friction Linux workflow.
+The primary user problem: after reinstalling Linux or changing computers, the user should not have to spend hours rebuilding their desktop, shell, applications and development workstation manually.
 
-## Current implementation
+WI Dot should capture selected configuration and environment information, protect it with client-side encryption, compare it with a fresh installation and guide the user through a safe restoration plan.
+
+## Product vision
+
+A user should be able to back up a named Linux environment, select configuration and inventory categories, review detected desktop/shell/packages/tools, encrypt selected file contents locally, reinstall Linux, compare the new machine with the saved profile, preview missing packages and settings, approve individual actions, restore in stages and verify the resulting environment.
+
+## Intended backup categories
+
+- Desktop: KDE Plasma, GNOME, themes, icons, fonts, wallpapers, extensions and preferences.
+- Shell and terminal: Bash, Zsh, Fish, aliases, functions, prompt themes and terminal profiles.
+- Development: Git, SSH client config, VS Code and IDE settings, Docker, PHP, Laravel, Node.js and related tooling.
+- Applications: selected user-level application settings and config directories.
+- Packages: inventories from supported package managers such as pacman, apt, dnf, Flatpak and Snap.
+- Automation: user scripts, setup manifests and post-install tasks.
+
+Treat package managers and desktop environments as platform adapters. Do not assume commands, package names or configuration paths are identical across distributions or versions.
+
+## Current implementation (do not overstate)
 
 ### Backend
 - Laravel 13, PHP 8.3+.
-- Laravel Sanctum Bearer-token authentication.
-- Environment, dotfile and file-history models.
-- API endpoints to create/list environments, list dotfiles, upload and download encrypted payloads.
-- Local filesystem storage disk named `dotfiles`.
-- EncryptedPayloadValidator validates AES-GCM payload structure, cryptographic field lengths, fixed KDF parameters and payload hash without decrypting.
+- Laravel Sanctum authentication.
+- Environment, Dotfile and FileHistory models.
+- API for environment listing/creation and encrypted dotfile upload/download.
+- EncryptedPayloadValidator checks payload structure and integrity without decrypting.
 
 ### CLI
-- TypeScript and Node.js.
-- Commands: `widot init`, `widot push <path>`, `widot pull`.
-- AES-256-GCM with PBKDF2-SHA256 (600,000 iterations).
-- SHA-256 plaintext and encrypted-payload hashes.
-- Local config at `~/.config/widot/config.json`, currently protected by filesystem permissions 0600.
-- Atomic file writes are used for restore, but path confinement and symlink-safe behavior need hardening.
+- Node.js and TypeScript.
+- Existing commands: `widot init`, `widot push` and `widot pull`.
+- AES-256-GCM, PBKDF2-SHA256 (600,000 iterations), random salt and IV.
+- SHA-256 hashes for payload integrity and plaintext change detection.
+- Local passphrase is currently stored in `~/.config/widot/config.json` with restrictive permissions; it is not an OS credential-store integration.
 
 ### Dashboard
 - React 19, TypeScript, Vite and Tailwind.
-- File tree and diff viewer exist.
-- Current content comes from mock data; do not claim API integration.
+- File tree and diff viewer foundation.
+- Data is currently mocked, not live API data.
 
 ## Product requirements
 
-- Manage multiple named Linux environments.
-- Back up selected dotfiles and restore them safely.
-- Preserve file content exactly, including UTF-8, newlines and tabs.
-- Encrypt locally; server never receives plaintext or passphrase.
-- Detect changes and preserve recoverable file history.
-- Show clear progress, skipped files, conflicts and errors.
-- Support safe exclusion patterns and dry-run before broad directory operations.
-- Provide an API-backed dashboard with environment selection, file history and readable diffs.
-- Keep recovery and rollback safer than destructive overwrite.
+- Named machine/environment profiles.
+- Selective dotfile backup with include/exclude rules.
+- Environment inventory with distro, desktop, shell, package manager and application detection.
+- Read-only scan before any system change.
+- Package export/import adapters with dry-run and reviewable command plans.
+- Safe file restore with root confinement, symlink defenses, backups and atomic writes.
+- Conflict detection and explicit overwrite approval.
+- File history, rollback and restore reports.
+- Client-side encryption for file contents.
+- Clear distinction between encrypted file content and server-visible metadata.
+- Authenticated dashboard with real environment, inventory, history and diff data.
+- Linux-first architecture with future platform adapters for macOS and Windows.
 
-## Non-negotiable security work
+## Safety and security requirements
 
-1. Prevent remote path traversal and writes outside an approved root.
-2. Reject symlinked directories during recursive traversal.
-3. Validate all remote path metadata before filesystem operations.
-4. Bound request body size, ciphertext length, file count and processing time.
-5. Avoid logging secrets or file contents.
-6. Migrate passphrase storage toward an OS credential store; do not silently claim current config is keychain-backed.
-7. Use secure defaults for file permissions and atomic writes.
-8. Preserve AES-GCM authentication and the payload versioning contract.
-9. Test malformed Base64, incorrect hashes, wrong passphrases, truncated payloads and unsupported KDF parameters.
-10. Review metadata exposure: paths, filenames, hashes, timestamps and environment identifiers.
+1. Do not trust remote paths; normalize and confine them to an approved restore root.
+2. Reject traversal, unsafe absolute paths and symlink-based escapes.
+3. Use lstat/no-follow semantics while collecting files; skip symlinks by default.
+4. Add limits for request body size, file count, individual file size and total backup size.
+5. Exclude secrets by default (SSH private keys, tokens, cloud credentials, password stores and browser profiles).
+6. Sensitive-path inclusion requires explicit opt-in and a clear warning.
+7. Never execute remote or downloaded scripts automatically.
+8. Never invoke sudo, change repositories, install packages, alter services or write system paths without explicit user approval.
+9. Generate a restore plan first; let users inspect and approve each operation.
+10. Verify AES-GCM authentication before writing plaintext.
+11. Do not log passphrases, tokens, private keys, plaintext config or decrypted payloads.
+12. Treat paths, filenames, hashes, timestamps and package inventory as sensitive metadata.
+13. Preserve crypto payload compatibility. Any format change needs versioning and migration tests.
+14. Do not claim zero-knowledge for metadata that the server can observe.
 
-## Implementation workflow
+## Engineering workflow
 
-Before editing, inspect the relevant code and explain the current behavior. Implement in small changes, add regression tests, run PHP and TypeScript validation, and verify the encryption format remains compatible across CLI and backend.
+Before implementation, inspect existing code and state exactly what is already supported. Build in small increments. Add regression tests for path traversal, symlinks, malformed payloads, wrong passphrases, package command generation and approval boundaries. Test CLI/backend payload compatibility.
 
-Never silently overwrite user files, remove remote history or broaden filesystem access. Document every migration and report actual test results.
+Run relevant PHP tests, Pint, TypeScript typecheck/build and dashboard build when possible. Report exact commands and results. Never claim a test passed if it was not run.
+
+## Definition of done
+
+A feature is complete only when it has implemented code integrated with the current architecture, tests for normal and failure cases, a security review appropriate to its trust boundary, documentation distinguishing current behavior from future plans, and verified build/test results.
