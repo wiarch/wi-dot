@@ -1,9 +1,21 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "wiarch/wi-dot",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Zero-knowledge dotfiles and Linux environment synchronization platform.",
+    "keywords": [
+        "wi-dot",
+        "dotfiles",
+        "linux",
+        "dotfiles-manager",
+        "configuration-management",
+        "zero-knowledge",
+        "end-to-end-encryption",
+        "aes-256-gcm",
+        "pbkdf2",
+        "laravel",
+        "sanctum"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
