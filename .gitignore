@@ -25,3 +25,11 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Dependencies and generated artifacts (including nested workspaces)
+**/node_modules/
+**/coverage/
+**/.turbo/
+**/.vite/
+cli/.env
+cli/.env.*
