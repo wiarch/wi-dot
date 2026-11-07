@@ -121,3 +121,11 @@ Use a narrow, reviewed directory when backing up files. Do not upload your entir
 ## Project status
 
 WI Dot is under active development. The roadmap prioritizes filesystem safety, restore previews, exclusions, package inventory, reproducible setup plans and real dashboard/API integration. Do not use unattended restore workflows until the security requirements are implemented and tested.
+
+## License
+
+Released under the [MIT License](LICENSE).
+
+---
+
+Part of the **[WI Arch](https://github.com/wiarch)** ecosystem.
